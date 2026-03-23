@@ -1,8 +1,0 @@
-CREATE TABLE IF NOT EXISTS refresh_token (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    userId INT NOT NULL,
-    refresh_token TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_user_id_refresh_token FOREIGN KEY (userId) REFERENCES users(id)
-)

@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net/http"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/config"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/dto"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/repository"
@@ -12,16 +11,14 @@ import (
 )
 
 type UserHandler struct {
-	api *gin.Engine
 	userService service.UserService
 }
 
-func NewUserHandler(api *gin.Engine, cfg *config.Config, db *gorm.DB) *UserHandler {
+func NewUserHandler(cfg *config.Config, db *gorm.DB) *UserHandler {
 	repo := repository.NewUserRepository(db)
-	userSvc := service.NewService(cfg, repo)
+	userSvc := service.NewUserService(cfg, repo)
 
 	return &UserHandler{
-		api: api,
 		userService: userSvc,
 	}
 }
@@ -29,12 +26,9 @@ func NewUserHandler(api *gin.Engine, cfg *config.Config, db *gorm.DB) *UserHandl
 func (h *UserHandler) Register(c *gin.Context) {
     var req dto.RegisterRequest
     if err := c.ShouldBindJSON(&req); err != nil {
-		validationErrors := utils.FormatValidationError(err)
+		validationErrors := utils.FormatValidationError(err, req)
 
-		c.JSON(422, gin.H{
-			"message": "Validation failed",
-			"errors":  validationErrors,
-		})
+        utils.ErrorMessage(c, 400, "Validation failed", validationErrors)
 		return
 	}
 
@@ -45,13 +39,15 @@ func (h *UserHandler) Register(c *gin.Context) {
         return
     }
 
-    utils.SuccessMessage(c, http.StatusCreated, "Register success", res)
+    utils.SuccessMessage(c, 201, "Register success", res)
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
     var req dto.LoginRequest
     if err := c.ShouldBindJSON(&req); err != nil {
-        utils.ErrorMessage(c, 422, "Failed to process request", err.Error())
+        validationErrors := utils.FormatValidationError(err, req)
+
+        utils.ErrorMessage(c, 400, "Validation failed", validationErrors)
         return
     }
 
@@ -67,7 +63,9 @@ func (h *UserHandler) Login(c *gin.Context) {
 func (h *UserHandler) Refresh(c *gin.Context) {
     var req dto.RefreshRequest
     if err := c.ShouldBindJSON(&req); err != nil {
-        utils.ErrorMessage(c, 422, "Failed to process request", err.Error())
+        validationErrors := utils.FormatValidationError(err, req)
+
+        utils.ErrorMessage(c, 400, "Validation failed", validationErrors)
         return
     }
 

@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/config"
+	"github.com/AdnanRohmatKurniansah/tweet-go/internal/database"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/routes"
-	"github.com/AdnanRohmatKurniansah/tweet-go/pkg/internalsql"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,7 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db, err := internalsql.ConnectMySQL(cfg)
+	db, err := database.ConnectMySQL(cfg)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/model"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/repository"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/utils"
+	"gorm.io/gorm"
 )
 
 type UserService interface {
@@ -21,7 +22,7 @@ type userService struct {
 	repo repository.UserRepository
 }
 
-func NewService(cfg *config.Config, repo repository.UserRepository) UserService {
+func NewUserService(cfg *config.Config, repo repository.UserRepository) UserService {
 	return &userService{
 		cfg:  cfg,
 		repo: repo,
@@ -30,16 +31,20 @@ func NewService(cfg *config.Config, repo repository.UserRepository) UserService 
 
 func (s *userService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, error) {
 	if req.Password != req.PasswordConfirm {
-		return nil, errors.New("passwords do not match")
+		return nil, errors.New("Passwords do not match")
 	}
 
-	existsEmail, _ := s.repo.GetUserByEmail(req.Email)
-	if existsEmail != nil {
-		return nil, errors.New("email already exists")
+	existingUser, err := s.repo.GetUserByEmail(req.Email)
+
+	if err == nil && existingUser != nil {
+		return nil, errors.New("Email already exists")
+	}
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
 	}
 
 	hashedPassword, err := utils.HashPassword(req.Password)
-
 	if err != nil {
 		return nil, err
 	}
@@ -51,10 +56,15 @@ func (s *userService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 		Password: hashedPassword,
 	}
 
+	err = s.repo.CreateUser(user)
+	if err != nil {
+		return nil, err
+	}
+
 	return &dto.RegisterResponse{
 		User: dto.UserResponse{
-			Id:    user.Id,
-			Name:  user.Name,
+			Id: user.Id,
+			Name: user.Name,
 			Email: user.Email,
 			Phone: user.Phone,
 		},
@@ -64,23 +74,29 @@ func (s *userService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 func (s *userService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 	user, err := s.repo.GetUserByEmail(req.Email)
 	if err != nil {
-		return nil, errors.New("invalid credentials")
+		return nil, errors.New("Invalid credentials")
 	}
 
 	if !utils.CheckPasswordHash(req.Password, user.Password) {
-		return nil, errors.New("invalid credentials")
+		return nil, errors.New("Invalid credentials")
 	}
 
-	accessToken, refreshToken, err := utils.GenerateTokens(user.Id, user.Email, user.Name, user.Phone, s.cfg.JWT_SECRET)
-	
+	accessToken, refreshToken, err := utils.GenerateTokens(
+		user.Id,
+		user.Email,
+		user.Name,
+		user.Phone,
+		s.cfg.JWT_SECRET,
+	)
+
 	if err != nil {
 		return nil, err
 	}
 
 	return &dto.LoginResponse{
 		User: dto.UserResponse{
-			Id:    user.Id,
-			Name:  user.Name,
+			Id: user.Id,
+			Name: user.Name,
 			Email: user.Email,
 			Phone: user.Phone,
 		},
@@ -92,16 +108,23 @@ func (s *userService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 func (s *userService) Refresh(req dto.RefreshRequest) (*dto.RefreshResponse, error) {
 	claims, err := utils.ValidateJWT(req.RefreshToken, s.cfg.JWT_SECRET)
 	if err != nil {
-		return nil, errors.New("invalid refresh token")
+		return nil, errors.New("Invalid refresh token")
 	}
 
-	accessToken, refreshToken, err := utils.GenerateTokens(claims.ID, claims.Email, claims.Name, claims.Phone, s.cfg.JWT_SECRET)
+	accessToken, refreshToken, err := utils.GenerateTokens(
+		claims.Id,
+		claims.Email,
+		claims.Name,
+		claims.Phone,
+		s.cfg.JWT_SECRET,
+	)
+
 	if err != nil {
 		return nil, err
 	}
 
 	return &dto.RefreshResponse{
-		AccessToken:  accessToken,
+		AccessToken: accessToken,
 		RefreshToken: refreshToken,
 	}, nil
 }

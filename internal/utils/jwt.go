@@ -7,7 +7,7 @@ import (
 )
 
 type JWTClaim struct {
-	ID uint `json:"id"`
+	Id uint `json:"id"`
 	Name string `json:"name"`
 	Email string `json:"email"`
 	Phone string `json:"phone"`
@@ -15,9 +15,9 @@ type JWTClaim struct {
 }
 
 func GenerateTokens(id uint, email, name, phone, secret string) (string, string, error) {
-	expirationTime := time.Now().Add(15 * time.Minute)
+	expirationTime := time.Now().Add(30 * time.Minute)
 	claims := &JWTClaim{
-		ID: id,
+		Id: id,
 		Name: name,
 		Email: email,
 		Phone: phone,
@@ -33,7 +33,7 @@ func GenerateTokens(id uint, email, name, phone, secret string) (string, string,
 
 	refreshExpirationTime := time.Now().Add(7 * 24 * time.Hour)
 	refreshClaims := &JWTClaim{
-		ID: id,
+		Id: id,
 		Name: name,
 		Email: email,
 		Phone: phone,
@@ -49,6 +49,9 @@ func GenerateTokens(id uint, email, name, phone, secret string) (string, string,
 
 func ValidateJWT(tokenString, secret string) (*JWTClaim, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaim{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing method")
+		}
 		return []byte(secret), nil
 	})
 
