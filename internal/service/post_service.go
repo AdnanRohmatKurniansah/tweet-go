@@ -1,8 +1,6 @@
 package service
 
 import (
-	"errors"
-
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/dto"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/model"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/repository"
@@ -26,11 +24,12 @@ func NewPostService(repo repository.PostRepository) PostService {
 }
 
 func (s *postService) CreatePost(req dto.CreatePostRequest, userId uint, imageUrl string) (*model.Post, error) {
+
 	post := &model.Post{
-		Title: req.Title,
-		Content: req.Content,
-		UserId: userId,
-		ImageUrl: imageUrl,	
+		Title:    req.Title,
+		Content:  req.Content,
+		UserId:   userId,
+		ImageUrl: imageUrl,
 	}
 
 	if err := s.repo.CreatePost(post); err != nil {
@@ -41,28 +40,39 @@ func (s *postService) CreatePost(req dto.CreatePostRequest, userId uint, imageUr
 }
 
 func (s *postService) GetPosts(page, limit int) ([]model.Post, int64, error) {
+
 	if page < 1 {
 		page = 1
 	}
+
 	if limit < 1 {
 		limit = 10
 	}
+
 	return s.repo.FindAllPaginated(page, limit)
 }
 
 func (s *postService) GetPostById(id uint) (*model.Post, error) {
-	return s.repo.FindById(id)
+
+	post, err := s.repo.FindById(id)
+	if err != nil {
+		return nil, utils.ErrNotFound
+	}
+
+	return post, nil
 }
 
 func (s *postService) UpdatePost(id uint, req dto.UpdatePostRequest, newImageUrl string) (*model.Post, error) {
+
 	post, err := s.repo.FindById(id)
 	if err != nil {
-		return nil, errors.New("Post not found")
+		return nil, utils.ErrNotFound
 	}
 
 	if req.Title != "" {
 		post.Title = req.Title
 	}
+
 	if req.Content != "" {
 		post.Content = req.Content
 	}
@@ -80,9 +90,10 @@ func (s *postService) UpdatePost(id uint, req dto.UpdatePostRequest, newImageUrl
 }
 
 func (s *postService) DeletePost(id uint) (*model.Post, error) {
+
 	post, err := s.repo.FindById(id)
 	if err != nil {
-		return nil, errors.New("Post not found")
+		return nil, utils.ErrNotFound
 	}
 
 	if err := s.repo.DeletePost(post); err != nil {

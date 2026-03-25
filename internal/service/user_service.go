@@ -31,13 +31,13 @@ func NewUserService(cfg *config.Config, repo repository.UserRepository) UserServ
 
 func (s *userService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, error) {
 	if req.Password != req.PasswordConfirm {
-		return nil, errors.New("Passwords do not match")
+		return nil, utils.ErrBadRequest // 
 	}
 
 	existingUser, err := s.repo.GetUserByEmail(req.Email)
 
 	if err == nil && existingUser != nil {
-		return nil, errors.New("Email already exists")
+		return nil, utils.ErrAlreadyExists 
 	}
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -74,11 +74,11 @@ func (s *userService) Register(req dto.RegisterRequest) (*dto.RegisterResponse, 
 func (s *userService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 	user, err := s.repo.GetUserByEmail(req.Email)
 	if err != nil {
-		return nil, errors.New("Invalid credentials")
+		return nil, utils.ErrUnauthorized // 
 	}
 
 	if !utils.CheckPasswordHash(req.Password, user.Password) {
-		return nil, errors.New("Invalid credentials")
+		return nil, utils.ErrUnauthorized
 	}
 
 	accessToken, refreshToken, err := utils.GenerateTokens(
@@ -108,7 +108,7 @@ func (s *userService) Login(req dto.LoginRequest) (*dto.LoginResponse, error) {
 func (s *userService) Refresh(req dto.RefreshRequest) (*dto.RefreshResponse, error) {
 	claims, err := utils.ValidateJWT(req.RefreshToken, s.cfg.JWT_SECRET)
 	if err != nil {
-		return nil, errors.New("Invalid refresh token")
+		return nil, utils.ErrUnauthorized 
 	}
 
 	accessToken, refreshToken, err := utils.GenerateTokens(

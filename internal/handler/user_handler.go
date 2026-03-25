@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"errors"
+
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/config"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/dto"
 	"github.com/AdnanRohmatKurniansah/tweet-go/internal/repository"
@@ -35,6 +37,16 @@ func (h *UserHandler) Register(c *gin.Context) {
     res, err := h.userService.Register(req); 
     
     if err != nil {
+        if errors.Is(err, utils.ErrBadRequest) {
+			utils.ErrorMessage(c, 400, "Password doesnt match", nil)
+			return
+		}
+
+        if errors.Is(err, utils.ErrAlreadyExists) {
+			utils.ErrorMessage(c, 409, "Email already exists", nil)
+			return
+		}
+
         utils.ErrorMessage(c, 500, "Failed to register user", err.Error())
         return
     }
@@ -53,6 +65,11 @@ func (h *UserHandler) Login(c *gin.Context) {
 
     res, err := h.userService.Login(req)
     if err != nil {
+        if errors.Is(err, utils.ErrUnauthorized) {
+			utils.ErrorMessage(c, 401, "Invalid credentials", nil)
+			return
+		}
+
         utils.ErrorMessage(c, 401, "Failed to login", err.Error())
         return
     }
@@ -71,6 +88,11 @@ func (h *UserHandler) Refresh(c *gin.Context) {
 
     res, err := h.userService.Refresh(req)
     if err != nil {
+        if errors.Is(err, utils.ErrUnauthorized) {
+			utils.ErrorMessage(c, 401, "Invalid refresh token", nil)
+			return
+		}
+
         utils.ErrorMessage(c, 401, "Failed to refresh token", err.Error())
         return
     }

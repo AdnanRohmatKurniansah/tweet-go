@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"math"
 	"strconv"
 
@@ -46,7 +47,12 @@ func (h *PostHandler) GetById(c *gin.Context) {
 
 	post, err := h.postService.GetPostById(uint(id))
 	if err != nil {
-		utils.ErrorMessage(c, 404, "Post not found", err.Error())
+		if errors.Is(err, utils.ErrNotFound) {
+			utils.ErrorMessage(c, 404, "Post not found", nil)
+			return
+		}
+
+		utils.ErrorMessage(c, 500, "Failed to fetch post", err.Error())
 		return
 	}
 
@@ -112,6 +118,10 @@ func (h *PostHandler) Update(c *gin.Context) {
 
 	post, err := h.postService.UpdatePost(uint(id), req, imageUrl)
 	if err != nil {
+		if errors.Is(err, utils.ErrNotFound) {
+			utils.ErrorMessage(c, 404, "Post not found", nil)
+			return
+		}
 		utils.ErrorMessage(c, 500, "Failed to update post", err.Error())
 		return
 	}
@@ -128,6 +138,11 @@ func (h *PostHandler) Delete(c *gin.Context) {
 
 	post, err := h.postService.DeletePost(uint(id))
 	if ; err != nil {
+		if errors.Is(err, utils.ErrNotFound) {
+			utils.ErrorMessage(c, 404, "Post not found", nil)
+			return
+		}
+
 		utils.ErrorMessage(c, 500, "Failed to delete post", err.Error())
 		return
 	}
